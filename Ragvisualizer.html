@@ -1,1 +1,1562 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAG Simulator — Learn Retrieval Augmented Generation</title>
+
+<style>
+:root {
+  --bg: #f5f7fb;
+  --panel: #ffffff;
+  --text: #172033;
+  --muted: #687386;
+  --border: #e4e8ef;
+  --primary: #635bff;
+  --primary-soft: #efedff;
+  --green: #16a36a;
+  --green-soft: #e8f8f1;
+  --orange: #e99525;
+  --orange-soft: #fff5e5;
+  --red: #dc5a63;
+  --red-soft: #fff0f1;
+  --blue: #3182ce;
+  --blue-soft: #eaf4ff;
+  --shadow: 0 12px 40px rgba(28, 39, 65, .08);
+  --radius: 18px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+               "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* HEADER */
+
+.header {
+  background: #101522;
+  color: white;
+  padding: 26px 34px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.header-inner {
+  max-width: 1400px;
+  margin: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #786fff, #5148e8);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 20px;
+}
+
+.brand h1 {
+  font-size: 19px;
+  margin: 0;
+}
+
+.brand p {
+  margin: 3px 0 0;
+  color: #9da6b8;
+  font-size: 12px;
+}
+
+.header-tip {
+  font-size: 13px;
+  color: #aeb6c5;
+  text-align: right;
+}
+
+/* LAYOUT */
+
+.app {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 28px 30px 70px;
+}
+
+.intro {
+  margin-bottom: 26px;
+}
+
+.intro h2 {
+  font-size: 30px;
+  letter-spacing: -.7px;
+  margin: 0 0 8px;
+}
+
+.intro p {
+  color: var(--muted);
+  max-width: 850px;
+  line-height: 1.6;
+}
+
+/* PIPELINE */
+
+.pipeline-wrap {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: var(--shadow);
+  margin-bottom: 24px;
+  overflow-x: auto;
+}
+
+.pipeline {
+  display: flex;
+  align-items: center;
+  min-width: 1050px;
+}
+
+.pipeline-step {
+  flex: 1;
+  min-width: 105px;
+  position: relative;
+}
+
+.pipeline-step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 21px;
+  right: -3px;
+  width: 16px;
+  height: 2px;
+  background: #d8ddea;
+}
+
+.step-btn {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0 5px;
+  color: var(--muted);
+}
+
+.step-circle {
+  width: 43px;
+  height: 43px;
+  border-radius: 50%;
+  margin: 0 auto 8px;
+  display: grid;
+  place-items: center;
+  background: #f0f2f7;
+  color: #727c8e;
+  font-size: 13px;
+  font-weight: 800;
+  position: relative;
+  z-index: 2;
+  border: 2px solid transparent;
+}
+
+.pipeline-step.active .step-circle {
+  background: var(--primary-soft);
+  color: var(--primary);
+  border-color: #bdb8ff;
+}
+
+.pipeline-step.completed .step-circle {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.step-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* MAIN GRID */
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 1.25fr .75fr;
+  gap: 24px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.panel-header {
+  padding: 22px 24px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-header h3 {
+  margin: 0 0 5px;
+  font-size: 18px;
+}
+
+.panel-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.panel-body {
+  padding: 24px;
+}
+
+/* STAGE */
+
+.stage-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.stage-number {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+}
+
+.stage-description {
+  margin: 12px 0 22px;
+  line-height: 1.65;
+  color: #4c5769;
+}
+
+/* CARDS */
+
+.data-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 12px;
+  background: #fbfcfe;
+  transition: .2s ease;
+}
+
+.data-card:hover {
+  border-color: #c9c5ff;
+  transform: translateY(-1px);
+}
+
+.data-card.selected {
+  border-color: var(--primary);
+  background: #faf9ff;
+}
+
+.data-card.relevant {
+  border-color: #8dd8b9;
+  background: #f5fcf8;
+}
+
+.card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 9px;
+}
+
+.card-title {
+  font-weight: 750;
+  font-size: 14px;
+}
+
+.card-text {
+  color: #5b6575;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.tag {
+  display: inline-flex;
+  padding: 4px 8px;
+  border-radius: 100px;
+  font-size: 10px;
+  font-weight: 750;
+  background: #eef1f6;
+  color: #626d7e;
+}
+
+.tag.green {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.tag.orange {
+  background: var(--orange-soft);
+  color: #b56e08;
+}
+
+.tag.blue {
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.tag.purple {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+/* CONTROLS */
+
+.control-group {
+  margin-bottom: 20px;
+}
+
+.control-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 750;
+  margin-bottom: 8px;
+}
+
+input[type="range"] {
+  width: 100%;
+  accent-color: var(--primary);
+}
+
+input[type="text"],
+textarea,
+select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 12px;
+  background: white;
+  color: var(--text);
+  outline: none;
+}
+
+input[type="text"]:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.primary-btn {
+  width: 100%;
+  border: 0;
+  padding: 13px 18px;
+  border-radius: 11px;
+  background: var(--primary);
+  color: white;
+  font-weight: 750;
+  transition: .2s;
+}
+
+.primary-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(.97);
+}
+
+.secondary-btn {
+  border: 1px solid var(--border);
+  background: white;
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+/* SCORE */
+
+.score-box {
+  border-radius: 14px;
+  padding: 16px;
+  background: #f8f9fc;
+  margin-bottom: 20px;
+}
+
+.score-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 9px;
+}
+
+.score {
+  font-size: 25px;
+  font-weight: 850;
+}
+
+.bar {
+  height: 8px;
+  border-radius: 99px;
+  background: #e8ebf1;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--primary);
+  transition: width .5s ease;
+}
+
+/* EXPLANATION */
+
+.explain {
+  background: #101522;
+  color: white;
+  border-radius: 14px;
+  padding: 18px;
+  margin-top: 18px;
+}
+
+.explain .label {
+  color: #9ca6b8;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  font-weight: 800;
+  margin-bottom: 7px;
+}
+
+.explain p {
+  margin: 0;
+  line-height: 1.6;
+  font-size: 13px;
+  color: #e5e8ef;
+}
+
+/* EMBEDDING */
+
+.embedding {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 12px;
+}
+
+.vector-number {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  background: #edf0f5;
+  border-radius: 6px;
+  padding: 5px 7px;
+  color: #5e697a;
+}
+
+/* RETRIEVAL TABLE */
+
+.result-row {
+  display: grid;
+  grid-template-columns: 38px 1fr 90px;
+  gap: 12px;
+  align-items: center;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.rank {
+  width: 29px;
+  height: 29px;
+  border-radius: 8px;
+  background: #f0f2f7;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.similarity {
+  text-align: right;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.mini-bar {
+  margin-top: 6px;
+  height: 5px;
+  background: #eceef3;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.mini-bar span {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+}
+
+/* PROMPT */
+
+.prompt-box {
+  background: #0e1320;
+  color: #dfe5f1;
+  padding: 17px;
+  border-radius: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow: auto;
+}
+
+/* ANSWER */
+
+.answer {
+  border: 1px solid #bce6d3;
+  background: #f3fbf7;
+  border-radius: 14px;
+  padding: 20px;
+  line-height: 1.7;
+  color: #234536;
+}
+
+.answer strong {
+  color: #123426;
+}
+
+/* CONCEPT GRID */
+
+.concepts {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.concept {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.concept h4 {
+  margin: 0 0 5px;
+  font-size: 13px;
+}
+
+.concept p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* BOTTOM */
+
+.bottom-panel {
+  margin-top: 24px;
+}
+
+.architecture {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.arch-node {
+  padding: 13px 8px;
+  border-radius: 11px;
+  background: #f7f8fb;
+  border: 1px solid var(--border);
+  text-align: center;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.arch-arrow {
+  text-align: center;
+  color: #a4adbd;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 1000px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .header-tip {
+    display: none;
+  }
+
+  .concepts {
+    grid-template-columns: 1fr;
+  }
+
+  .architecture {
+    grid-template-columns: 1fr;
+  }
+
+  .arch-arrow {
+    transform: rotate(90deg);
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="logo">R</div>
+      <div>
+        <h1>RAG Simulator</h1>
+        <p>Understand Retrieval-Augmented Generation by doing it</p>
+      </div>
+    </div>
+    <div class="header-tip">
+      The key question at every stage:<br>
+      <strong>What information does the LLM need?</strong>
+    </div>
+  </div>
+</header>
+
+<main class="app">
+
+  <section class="intro">
+    <h2>Build a RAG system, step by step</h2>
+    <p>
+      This simulator uses a small fictional company knowledge base to show
+      what happens from raw documents all the way to the final LLM answer.
+      Move through each stage and inspect what changes.
+    </p>
+  </section>
+
+  <!-- PIPELINE -->
+
+  <div class="pipeline-wrap">
+    <div class="pipeline" id="pipeline"></div>
+  </div>
+
+  <div class="main-grid">
+
+    <!-- LEFT -->
+
+    <section class="panel">
+      <div class="panel-header">
+        <div class="stage-title">
+          <div>
+            <div class="stage-number" id="stageNumber"></div>
+            <h3 id="stageTitle"></h3>
+          </div>
+          <button class="secondary-btn" onclick="nextStage()">Next →</button>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <div class="stage-description" id="stageDescription"></div>
+        <div id="stageContent"></div>
+      </div>
+    </section>
+
+    <!-- RIGHT -->
+
+    <aside class="panel">
+      <div class="panel-header">
+        <h3>Learning lens</h3>
+        <p>What is happening behind the scenes?</p>
+      </div>
+
+      <div class="panel-body">
+
+        <div class="score-box">
+          <div class="score-row">
+            <span style="font-size:12px;font-weight:750;">Pipeline progress</span>
+            <span class="score" id="progressScore">0%</span>
+          </div>
+          <div class="bar">
+            <div class="bar-fill" id="progressBar"></div>
+          </div>
+        </div>
+
+        <div id="explanation"></div>
+
+        <div class="concepts">
+          <div class="concept">
+            <h4>Retrieval</h4>
+            <p>Find the information that is relevant to the user's question.</p>
+          </div>
+
+          <div class="concept">
+            <h4>Generation</h4>
+            <p>Use the retrieved information to formulate the answer.</p>
+          </div>
+
+          <div class="concept">
+            <h4>Knowledge</h4>
+            <p>RAG provides external knowledge without retraining the model.</p>
+          </div>
+
+          <div class="concept">
+            <h4>Quality</h4>
+            <p>Bad retrieval can produce a bad answer even when the LLM is excellent.</p>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- ARCHITECTURE -->
+
+  <section class="panel bottom-panel">
+    <div class="panel-header">
+      <h3>The complete mental model</h3>
+      <p>RAG is best understood as a retrieval system feeding an LLM.</p>
+    </div>
+
+    <div class="panel-body">
+      <div class="architecture">
+        <div class="arch-node">User Question</div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">Retrieve</div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">Relevant Context</div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">LLM → Answer</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+
+/* =========================================================
+   SIMULATED KNOWLEDGE BASE
+========================================================= */
+
+const documents = [
+  {
+    id: "DOC-001",
+    title: "Refund Policy",
+    type: "Policy",
+    text: "Customers may request a refund within 30 days of purchase. Refunds are processed to the original payment method within 5 to 7 business days."
+  },
+  {
+    id: "DOC-002",
+    title: "Premium Plan",
+    type: "Product",
+    text: "The Premium plan costs $49 per month and includes unlimited projects, priority support, advanced analytics and team collaboration."
+  },
+  {
+    id: "DOC-003",
+    title: "Support Policy",
+    type: "Policy",
+    text: "Standard customers receive email support within 48 hours. Premium customers receive priority support with an initial response within 4 business hours."
+  },
+  {
+    id: "DOC-004",
+    title: "Cancellation Policy",
+    type: "Policy",
+    text: "Customers can cancel their subscription at any time. Cancellation stops the next renewal but does not automatically create a refund for the current billing period."
+  },
+  {
+    id: "DOC-005",
+    title: "Enterprise Plan",
+    type: "Product",
+    text: "Enterprise customers receive custom pricing, dedicated account management, SSO, advanced security controls and SLA-backed support."
+  }
+];
+
+/* =========================================================
+   CHUNKS
+========================================================= */
+
+const chunks = [
+  {
+    id: "C1",
+    doc: "DOC-001",
+    title: "Refund Policy — eligibility",
+    text: "Customers may request a refund within 30 days of purchase.",
+    keywords: ["refund", "30 days", "purchase", "money"]
+  },
+  {
+    id: "C2",
+    doc: "DOC-001",
+    title: "Refund Policy — processing",
+    text: "Refunds are processed to the original payment method within 5 to 7 business days.",
+    keywords: ["refund", "payment", "5", "7", "business days"]
+  },
+  {
+    id: "C3",
+    doc: "DOC-002",
+    title: "Premium Plan — price",
+    text: "The Premium plan costs $49 per month.",
+    keywords: ["premium", "plan", "price", "49", "month"]
+  },
+  {
+    id: "C4",
+    doc: "DOC-002",
+    title: "Premium Plan — features",
+    text: "Premium includes unlimited projects, priority support, advanced analytics and team collaboration.",
+    keywords: ["premium", "priority", "support", "analytics"]
+  },
+  {
+    id: "C5",
+    doc: "DOC-003",
+    title: "Support Policy",
+    text: "Premium customers receive priority support with an initial response within 4 business hours.",
+    keywords: ["support", "premium", "priority", "4", "hours"]
+  },
+  {
+    id: "C6",
+    doc: "DOC-004",
+    title: "Cancellation Policy",
+    text: "Customers can cancel their subscription at any time. Cancellation stops the next renewal.",
+    keywords: ["cancel", "subscription", "renewal"]
+  },
+  {
+    id: "C7",
+    doc: "DOC-004",
+    title: "Cancellation Policy — refunds",
+    text: "Cancellation does not automatically create a refund for the current billing period.",
+    keywords: ["cancel", "refund", "billing", "period"]
+  },
+  {
+    id: "C8",
+    doc: "DOC-005",
+    title: "Enterprise Plan",
+    text: "Enterprise customers receive custom pricing, dedicated account management, SSO and SLA-backed support.",
+    keywords: ["enterprise", "pricing", "account", "support"]
+  }
+];
+
+/* =========================================================
+   STAGES
+========================================================= */
+
+const stages = [
+  {
+    title: "Acquire & clean data",
+    short: "Data",
+    description:
+      "Before retrieval can happen, we need a usable knowledge base. Real RAG systems may ingest PDFs, websites, databases, help centres, Notion pages, tickets or internal documents.",
+    explanation:
+      "RAG does not magically know your company's information. You first need to make that information available to the retrieval system."
+  },
+  {
+    title: "Chunk the data",
+    short: "Chunk",
+    description:
+      "Large documents are broken into smaller pieces so that retrieval can return focused pieces of information rather than entire documents.",
+    explanation:
+      "Chunking is a major quality decision. Chunks that are too large waste context. Chunks that are too small can lose the surrounding meaning."
+  },
+  {
+    title: "Create embeddings",
+    short: "Embed",
+    description:
+      "Each chunk is converted into a numerical representation called an embedding. Similar meanings should occupy nearby regions of the vector space.",
+    explanation:
+      "An embedding is not a summary or a database record. It is a numerical representation designed to capture semantic relationships."
+  },
+  {
+    title: "Embed the query",
+    short: "Query",
+    description:
+      "The user's question is transformed into the same embedding space as the stored chunks.",
+    explanation:
+      "This puts the question and your stored knowledge into a comparable representation so the retrieval system can search for semantic similarity."
+  },
+  {
+    title: "Retrieve candidates",
+    short: "Retrieve",
+    description:
+      "The retrieval system searches the knowledge base for chunks that are likely to answer the question. This can use vector search, keyword search or both.",
+    explanation:
+      "Vector search is one retrieval mechanism, not the entire RAG architecture. Production systems often combine semantic search with keyword matching and metadata filters."
+  },
+  {
+    title: "Rerank",
+    short: "Rerank",
+    description:
+      "A second-stage model can inspect the candidate chunks more carefully and reorder them according to their relevance to the question.",
+    explanation:
+      "A common architecture is retrieve many candidates cheaply, then rerank a smaller set more carefully. Retrieval finds candidates; reranking improves precision."
+  },
+  {
+    title: "Build context",
+    short: "Context",
+    description:
+      "The best chunks are selected and placed into the context that will be given to the LLM.",
+    explanation:
+      "This is where RAG controls what knowledge the LLM actually sees. The model is not searching your entire database; it receives the selected context."
+  },
+  {
+    title: "Augment the prompt",
+    short: "Prompt",
+    description:
+      "The user's question, retrieved context and instructions are combined into a prompt for the LLM.",
+    explanation:
+      "The 'augmented' part of Retrieval-Augmented Generation refers to adding retrieved external information to the model's input."
+  },
+  {
+    title: "Generate answer",
+    short: "Generate",
+    description:
+      "Finally, the LLM uses the question, instructions and retrieved context to generate an answer.",
+    explanation:
+      "This is the generation part. Retrieval decides what information the model sees; the LLM decides how to use that information to formulate the answer."
+  }
+];
+
+let currentStage = 0;
+let query = "Can I get a refund if I purchased the product 10 days ago?";
+let topK = 3;
+
+/* =========================================================
+   SIMULATED EMBEDDINGS
+========================================================= */
+
+function fakeEmbedding(text) {
+  const words = text.toLowerCase().split(/\W+/).filter(Boolean);
+
+  let nums = [];
+
+  for (let i = 0; i < 8; i++) {
+    let value = 0;
+
+    words.forEach(word => {
+      let hash = 0;
+
+      for (let j = 0; j < word.length; j++) {
+        hash = ((hash << 5) - hash) + word.charCodeAt(j);
+        hash |= 0;
+      }
+
+      value += Math.sin(hash * (i + 1)) * .5;
+    });
+
+    nums.push(Math.tanh(value / Math.max(words.length, 1)));
+  }
+
+  return nums;
+}
+
+/* =========================================================
+   SIMILARITY
+========================================================= */
+
+function cosine(a, b) {
+  let dot = 0;
+  let aa = 0;
+  let bb = 0;
+
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    aa += a[i] * a[i];
+    bb += b[i] * b[i];
+  }
+
+  return dot / (Math.sqrt(aa) * Math.sqrt(bb) || 1);
+}
+
+function keywordScore(q, chunk) {
+  const qWords = q.toLowerCase().split(/\W+/);
+  let hits = 0;
+
+  qWords.forEach(word => {
+    if (word.length > 2 && chunk.keywords.includes(word)) hits++;
+  });
+
+  return hits / Math.max(qWords.length, 1);
+}
+
+function retrieve() {
+  const qVector = fakeEmbedding(query);
+
+  return chunks.map(chunk => {
+    const vector = fakeEmbedding(chunk.text);
+
+    const semantic = cosine(qVector, vector);
+    const keyword = keywordScore(query, chunk);
+
+    /* Hybrid retrieval:
+       70% semantic similarity
+       30% keyword match
+    */
+
+    const hybrid = semantic * .7 + keyword * .3;
+
+    return {
+      ...chunk,
+      semantic,
+      keyword,
+      score: hybrid
+    };
+  }).sort((a,b) => b.score - a.score);
+}
+
+function reranked() {
+  return retrieve()
+    .map(item => ({
+      ...item,
+      rerankScore:
+        item.score +
+        (item.title.toLowerCase().includes("refund") ? .18 : 0)
+    }))
+    .sort((a,b) => b.rerankScore - a.rerankScore);
+}
+
+/* =========================================================
+   RENDER PIPELINE
+========================================================= */
+
+function renderPipeline() {
+
+  const el = document.getElementById("pipeline");
+
+  el.innerHTML = stages.map((stage, index) => `
+    <div class="pipeline-step
+      ${index === currentStage ? "active" : ""}
+      ${index < currentStage ? "completed" : ""}">
+      <button class="step-btn" onclick="goToStage(${index})">
+        <div class="step-circle">${index + 1}</div>
+        <div class="step-label">${stage.short}</div>
+      </button>
+    </div>
+  `).join("");
+}
+
+function updateProgress() {
+
+  const pct = Math.round((currentStage / (stages.length - 1)) * 100);
+
+  document.getElementById("progressScore").textContent = pct + "%";
+  document.getElementById("progressBar").style.width = pct + "%";
+}
+
+function renderStage() {
+
+  const stage = stages[currentStage];
+
+  document.getElementById("stageNumber").textContent =
+    `Stage ${currentStage + 1} of ${stages.length}`;
+
+  document.getElementById("stageTitle").textContent = stage.title;
+
+  document.getElementById("stageDescription").textContent =
+    stage.description;
+
+  document.getElementById("explanation").innerHTML = `
+    <div class="explain">
+      <div class="label">Why this matters</div>
+      <p>${stage.explanation}</p>
+    </div>
+  `;
+
+  const content = document.getElementById("stageContent");
+
+  switch(currentStage) {
+    case 0: renderData(content); break;
+    case 1: renderChunks(content); break;
+    case 2: renderEmbeddings(content); break;
+    case 3: renderQueryEmbedding(content); break;
+    case 4: renderRetrieval(content); break;
+    case 5: renderReranking(content); break;
+    case 6: renderContext(content); break;
+    case 7: renderPrompt(content); break;
+    case 8: renderAnswer(content); break;
+  }
+
+  renderPipeline();
+  updateProgress();
+}
+
+/* =========================================================
+   STAGE 1
+========================================================= */
+
+function renderData(el) {
+
+  el.innerHTML = `
+    <div class="data-card selected">
+      <div class="card-top">
+        <div class="card-title">Company Knowledge Base</div>
+        <span class="tag green">${documents.length} documents</span>
+      </div>
+      <div class="card-text">
+        A simplified collection of product and policy information.
+        In a real application this might come from hundreds or millions
+        of documents.
+      </div>
+    </div>
+
+    ${documents.map(doc => `
+      <div class="data-card">
+        <div class="card-top">
+          <div class="card-title">${doc.title}</div>
+          <span class="tag">${doc.type}</span>
+        </div>
+        <div class="card-text">${doc.text}</div>
+      </div>
+    `).join("")}
+
+    <div class="explain" style="margin-top:20px">
+      <div class="label">Important</div>
+      <p>
+        The LLM has not seen this information yet. We are preparing it
+        so that a retrieval system can find it later.
+      </p>
+    </div>
+  `;
+}
+
+/* =========================================================
+   STAGE 2
+========================================================= */
+
+function renderChunks(el) {
+
+  el.innerHTML = `
+    <div class="control-group">
+      <label>Chunking strategy</label>
+      <select>
+        <option>Semantic / logical sections</option>
+        <option>Fixed token size</option>
+        <option>Paragraph based</option>
+        <option>Sliding window</option>
+      </select>
+    </div>
+
+    ${chunks.map(chunk => `
+      <div class="data-card">
+        <div class="card-top">
+          <div class="card-title">${chunk.title}</div>
+          <span class="tag purple">${chunk.id}</span>
+        </div>
+        <div class="card-text">${chunk.text}</div>
+      </div>
+    `).join("")}
+  `;
+}
+
+/* =========================================================
+   STAGE 3
+========================================================= */
+
+function renderEmbeddings(el) {
+
+  el.innerHTML = `
+    <div class="data-card selected">
+      <div class="card-top">
+        <div class="card-title">C1 → Refund eligibility</div>
+        <span class="tag blue">Embedding</span>
+      </div>
+
+      <div class="card-text">
+        "${chunks[0].text}"
+      </div>
+
+      <div class="embedding">
+        ${fakeEmbedding(chunks[0].text).map(n =>
+          `<span class="vector-number">${n.toFixed(3)}</span>`
+        ).join("")}
+      </div>
+    </div>
+
+    <div class="data-card">
+      <div class="card-text">
+        Every chunk gets its own vector representation. Real embeddings
+        commonly contain hundreds or thousands of dimensions; this simulator
+        uses only 8 so you can see them.
+      </div>
+    </div>
+  `;
+}
+
+/* =========================================================
+   STAGE 4
+========================================================= */
+
+function renderQueryEmbedding(el) {
+
+  el.innerHTML = `
+    <div class="control-group">
+      <label>User query</label>
+
+      <textarea id="queryInput"
+        oninput="query=this.value">${query}</textarea>
+    </div>
+
+    <div class="data-card selected">
+      <div class="card-top">
+        <div class="card-title">Query embedding</div>
+        <span class="tag blue">Vector</span>
+      </div>
+
+      <div class="embedding">
+        ${fakeEmbedding(query).map(n =>
+          `<span class="vector-number">${n.toFixed(3)}</span>`
+        ).join("")}
+      </div>
+    </div>
+
+    <div class="explain">
+      <div class="label">Key idea</div>
+      <p>
+        The question is now represented in the same vector space as
+        the stored chunks. We can therefore compare the query with
+        candidate pieces of knowledge.
+      </p>
+    </div>
+  `;
+}
+
+/* =========================================================
+   STAGE 5
+========================================================= */
+
+function renderRetrieval(el) {
+
+  const results = retrieve();
+
+  el.innerHTML = `
+    <div class="control-group">
+      <label>Top-K retrieved chunks: <strong>${topK}</strong></label>
+      <input type="range" min="1" max="8" value="${topK}"
+        oninput="topK=Number(this.value);renderStage()">
+    </div>
+
+    <div class="data-card">
+      <div class="card-text">
+        <strong>Retrieval strategy:</strong> Hybrid search
+        <br>
+        Semantic similarity + keyword matching
+      </div>
+    </div>
+
+    ${results.slice(0, topK).map((item, i) => `
+      <div class="result-row">
+        <div class="rank">${i + 1}</div>
+
+        <div>
+          <div class="card-title">${item.title}</div>
+          <div class="card-text">${item.text}</div>
+          <div class="mini-bar">
+            <span style="width:${Math.max(5,item.score*100)}%"></span>
+          </div>
+        </div>
+
+        <div class="similarity">
+          ${(item.score * 100).toFixed(1)}%
+          <div class="tag blue">relevance</div>
+        </div>
+      </div>
+    `).join("")}
+
+    <div class="explain">
+      <div class="label">Remember</div>
+      <p>
+        Vector similarity is only one retrieval technique. Production
+        RAG systems may combine vector search, keyword search, metadata
+        filters and other retrieval methods.
+      </p>
+    </div>
+  `;
+}
+
+/* =========================================================
+   STAGE 6
+========================================================= */
+
+function renderReranking(el) {
+
+  const results = reranked();
+
+  el.innerHTML = `
+    <div class="data-card">
+      <div class="card-top">
+        <div class="card-title">First-stage retrieval</div>
+        <span class="tag orange">Fast</span>
+      </div>
+
+      <div class="card-text">
+        Retrieve a larger set of potentially relevant candidates.
+        The goal here is high recall.
+      </div>
+    </div>
+
+    <div class="data-card">
+      <div class="card-top">
+        <div class="card-title">Second-stage reranking</div>
+        <span class="tag green">Precise</span>
+      </div>
+
+      <div class="card-text">
+        A reranker evaluates the candidates more carefully and
+        produces a better relevance ordering.
+      </div>
+    </div>
+
+    ${results.slice(0, topK).map((item,i) => `
+      <div class="result-row">
+        <div class="rank">${i+1}</div>
+
+        <div>
+          <div class="card-title">${item.title}</div>
+          <div class="card-text">${item.text}</div>
+        </div>
+
+        <div class="similarity">
+          ${(item.rerankScore * 100).toFixed(1)}%
+          <div class="tag green">reranked</div>
+        </div>
+      </div>
+    `).join("")}
+
+    <div class="explain">
+      <div class="label">Why rerank?</div>
+      <p>
+        Retrieval optimizes for finding candidates efficiently.
+        Reranking can optimize for precision before the expensive
+        LLM call.
+      </p>
+    </div>
+  `;
+}
+
+/* =========================================================
+   STAGE 7
+========================================================= */
+
+function renderContext(el) {
+
+  const results = reranked().slice(0, topK);
+
+  el.innerHTML = `
+    <div class="data-card">
+      <div class="card-top">
+        <div class="card-title">Selected context</div>
+        <span class="tag green">${results.length} chunks</span>
+      </div>
+
+      ${results.map(item => `
+        <div style="
+          margin-top:10px;
+          padding:11px;
+          border-radius:9px;
+          background:#f3f6fa;
+          font-size:12px;
+          line-height:1.5;">
+          <strong>${item.title}</strong><br>
+          ${item.text}
+        </div>
+      `).join("")}
+    </div>
+
+    <div class="explain">
+      <div class="label">This is the critical handoff</div>
+      <p>
+        The retrieval system has now decided what information the
+        LLM gets to see. This selected context becomes part of the
+        model's input.
+      </p>
+    </div>
+  `;
+}
+
+/* =========================================================
+   STAGE 8
+========================================================= */
+
+function renderPrompt(el) {
+
+  const results = reranked().slice(0, topK);
+
+  const context = results.map(item =>
+    `[${item.title}]\n${item.text}`
+  ).join("\n\n");
+
+  const prompt =
+`SYSTEM:
+Answer using the supplied context.
+If the context does not contain the answer,
+say that you do not have enough information.
+
+CONTEXT:
+${context}
+
+USER QUESTION:
+${query}
+
+INSTRUCTION:
+Give a concise answer and explain the relevant policy.`;
+
+  el.innerHTML = `
+    <div class="data-card">
+      <div class="card-top">
+        <div class="card-title">Augmented prompt</div>
+        <span class="tag purple">LLM input</span>
+      </div>
+
+      <div class="prompt-box">${escapeHtml(prompt)}</div>
+    </div>
+
+    <div class="explain">
+      <div class="label">Why "augmented"?</div>
+      <p>
+        The original user question has been augmented with retrieved
+        external knowledge before being sent to the LLM.
+      </p>
+    </div>
+  `;
+}
+
+/* =========================================================
+   STAGE 9
+========================================================= */
+
+function renderAnswer(el) {
+
+  const results = reranked().slice(0, topK);
+
+  const hasRefund = results.some(x =>
+    x.title.toLowerCase().includes("refund")
+  );
+
+  let answer;
+
+  if (hasRefund) {
+    answer = `
+      <strong>Yes.</strong> According to the refund policy,
+      customers may request a refund within 30 days of purchase.
+      Since you purchased the product 10 days ago, you are within
+      the stated refund window.
+
+      Refunds are processed to the original payment method within
+      5 to 7 business days.
+    `;
+  } else {
+    answer = `
+      I don't have enough relevant information in the retrieved
+      context to answer that confidently.
+    `;
+  }
+
+  el.innerHTML = `
+    <div class="answer">
+      <div style="
+        font-size:10px;
+        text-transform:uppercase;
+        letter-spacing:.8px;
+        font-weight:800;
+        margin-bottom:9px;
+        color:#33815f;">
+        Generated answer
+      </div>
+
+      ${answer}
+    </div>
+
+    <div class="data-card" style="margin-top:18px">
+      <div class="card-top">
+        <div class="card-title">What happened?</div>
+        <span class="tag green">Generation</span>
+      </div>
+
+      <div class="card-text">
+        The LLM did not search the entire knowledge base.
+        The retrieval system first selected relevant information,
+        and the LLM generated an answer using that context.
+      </div>
+    </div>
+
+    <div class="explain">
+      <div class="label">The complete distinction</div>
+      <p>
+        <strong>Retrieval:</strong> What information should the LLM see?
+        <br><br>
+        <strong>Generation:</strong> Given that information, what should
+        the LLM say?
+      </p>
+    </div>
+  `;
+}
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function escapeHtml(str) {
+
+  return str
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
+
+function nextStage() {
+
+  if (currentStage < stages.length - 1) {
+    currentStage++;
+    renderStage();
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+}
+
+function goToStage(index) {
+
+  currentStage = index;
+  renderStage();
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+/* INITIALIZE */
+
+renderStage();
+
+</script>
+
+</body>
+</html>
+```
 
